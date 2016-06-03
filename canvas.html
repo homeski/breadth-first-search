@@ -1,0 +1,206 @@
+<html>
+	<head>
+		<script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+		<style>
+			canvas, input, label {
+				display: block;
+				margin: .5em;
+			}
+
+			button {
+				margin: .5em;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="canvas" style="background-color: blue"></canvas>
+		<button id="draw">Draw</button>
+		<button id="bfs">BFS</button>
+		<label>Height </label><input id="height" value="10">
+		<label>Width </label><input id="width" value="10">
+		<label>Rows </label><input id="rows" value="10">
+		<label>Cols </label><input id="cols" value="10">
+	</body>
+	<script>
+
+	var canvas = document.getElementById("canvas");
+	var ctx = canvas.getContext("2d");
+
+	$('#draw').on('click', function() {
+		board.rows = $('#rows').val();
+		board.cols = $('#cols').val();
+		board.tile_height = $('#height').val();
+		board.tile_width = $('#width').val();
+		board.draw();
+	});
+
+	$('#bfs').on('click', function() {
+		bfs(board.build_graph());
+	});
+
+	function bfs(graph){
+		queue = [];
+		visited = [];
+
+		queue.push(0);
+		board.paint(0, 'yellow');
+		visited.push(0);
+
+
+		while (queue.length > 0) {
+			var id = queue.shift();
+			console.log('id: ' + id);
+
+			for (var i = 0; i < graph[id].length; i++) {
+				console.log('graph[id][i]: ' + graph[id][i]);
+				if (visited.indexOf(graph[id][i]) == -1) {
+					queue.push(graph[id][i]);
+
+					board.paint(graph[id][i], 'yellow');
+					visited.push(graph[id][i]);
+				}
+			}
+		}
+
+		console.log('visited: ' + visited);
+	}
+
+	class Board {
+		constructor(r, c, h, w, s) {
+			this.tiles = [];
+			this.rows = r;
+			this.cols = c;
+			this.tile_height = h;
+			this.tile_width = w;
+			this.tile_spacing = s;
+		}
+
+		add_tile(val) {
+			this.tiles.push(val);
+		}
+
+		// return the value of the tile at given position
+		get_tile(row, col) {
+			return this.tiles[row * this.cols + col];
+		}
+
+		get_tile_id(row, col) {
+			return row * this.cols + col;
+		}
+
+		clear() {
+			ctx.fillStyle = "blue";	
+			ctx.fillRect(0, 0, 10000, 10000);
+		}
+
+		paint(id, color) {
+			var i = 0;
+			var row = 0;
+			var col = 0;
+
+			while (i <= id) {
+				if (i != 0 && i % this.rows == 0) row++;
+
+				col = i % this.cols;				
+				i++;
+			}
+
+			console.log('row: ' + row + ' col: ' + col);
+
+			var x = ((col * this.tile_width) + (col * this.tile_spacing));
+			var y = ((row * this.tile_height) + (row * this.tile_spacing));
+
+			ctx.fillStyle = color;
+			ctx.fillRect(x, y, this.tile_width, this.tile_height);
+		}
+
+		draw() {
+			this.tiles = [];
+			this.clear();
+
+			for (var i = 0; i < this.rows; i++) {
+				for ( var j = 0; j < this.cols; j++) {
+					// find tile x pos
+					var x = j * this.tile_width;
+					if (j != 0) x += (this.tile_spacing * j);
+
+					// find tile y pos
+					var y = i * this.tile_height; 
+					if (y != 0) y += (this.tile_spacing * i);
+
+					this.add_tile(Math.floor(Math.random() + .5));
+
+					// get tile value
+					var color = this.get_tile(i, j);
+
+					// draw tile
+					if (color == 0) {
+						ctx.fillStyle = "red";
+					} else if (color == 1) {
+						ctx.fillStyle = "green";				
+					}
+
+					ctx.fillRect(x, y, this.tile_width, this.tile_height);
+				}
+			}
+		}
+
+		build_graph() {
+			this.graph = [];
+			var row = 0;
+			var col = 0;
+
+			for (var i = 0; i < this.tiles.length; i++) {
+				// get current row
+				if (i != 0 && i % this.rows == 0) row++;				
+
+				// get current col
+				col = i % this.cols;
+
+				var edges = [];
+
+				// check for edges
+				// check up
+				if (this.get_tile(row, col) == 1) {
+					if (row != 0) {
+						if (board.get_tile(row - 1, col) == 1) {
+							edges.push(this.get_tile_id(row - 1, col));
+						}
+					}	
+
+					// check right
+					if (col != (this.cols - 1)) {
+						if (board.get_tile(row, col + 1) == 1) {
+							edges.push(this.get_tile_id(row, col + 1)); 	
+						}
+					}
+
+					// check down
+					if (row != (this.rows - 1)) {
+						if (board.get_tile(row + 1, col) == 1) {
+							edges.push(this.get_tile_id(row + 1, col));
+						}
+					}
+
+					// check left
+					if (col != 0) {
+						if (board.get_tile(row, col - 1) == 1) {
+							edges.push(this.get_tile_id(row, col - 1));
+						}
+					}
+				}
+
+				this.graph.push(edges);
+			}
+
+			return this.graph;
+		}
+	}
+
+	// this array gets populated as the board is created
+	var board = new Board($('#rows').val(), $('#cols').val(), $('#height').val(), $('#width').val(), 1);
+
+	board.draw();
+
+	</script>
+</html>
