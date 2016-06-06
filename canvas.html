@@ -16,15 +16,17 @@
 		<canvas id="canvas" style="background-color: blue"></canvas>
 		<button id="draw">Draw</button>
 		<button id="bfs">BFS</button>
-		<label>Height </label><input id="height" value="10">
-		<label>Width </label><input id="width" value="10">
-		<label>Rows </label><input id="rows" value="10">
-		<label>Cols </label><input id="cols" value="10">
+		<label>Height </label><input id="height" type="number" value="20">
+		<label>Width </label><input id="width" type="number" value="20">
+		<label>Rows </label><input id="rows" type="number" value="13">
+		<label>Cols </label><input id="cols" type="number" value="25">
 	</body>
 	<script>
 
 	var canvas = document.getElementById("canvas");
 	var ctx = canvas.getContext("2d");
+
+	// jQuery
 
 	$('#draw').on('click', function() {
 		board.rows = $('#rows').val();
@@ -34,36 +36,62 @@
 		board.draw();
 	});
 
+   $('input').keypress(function(e) {
+		if(e.which == 13) {
+		   $('#draw').click();
+		}
+
+		if(e.which == 102) {
+		   $('#bfs').click();
+		}		
+   });
+
 	$('#bfs').on('click', function() {
 		bfs(board.build_graph());
 	});
 
+	// Breadth first search
+
 	function bfs(graph){
 		queue = [];
-		visited = [];
+		known = [];
 
+		// If the initial vector is not true, stop
+		if (board.get_tile(0, 0) == 0) return;
+
+		// Paint and push the initial vector to the queue
 		queue.push(0);
+		known.push(0);
 		board.paint(0, 'yellow');
-		visited.push(0);
 
 
+		// For each vector in the queue
 		while (queue.length > 0) {
+			// Pop the queue
 			var id = queue.shift();
-			console.log('id: ' + id);
 
-			for (var i = 0; i < graph[id].length; i++) {
-				console.log('graph[id][i]: ' + graph[id][i]);
-				if (visited.indexOf(graph[id][i]) == -1) {
+			// For each edge in the current vector
+			for (var i = 0; i < graph[id].length; i++) {				
+				console.log(id + ' --> ' + graph[id][i]);
+ 
+				// If the destination vector is not known
+				if (known.indexOf(graph[id][i]) == -1) {
+					// Push the new vector to the queue
 					queue.push(graph[id][i]);
 
+					// Paint the new vector 
 					board.paint(graph[id][i], 'yellow');
-					visited.push(graph[id][i]);
+
+					// Mark the new vector as known
+					known.push(graph[id][i]);
 				}
 			}
 		}
 
-		console.log('visited: ' + visited);
+		console.log('known: ' + known);
 	}
+
+	// Canvas
 
 	class Board {
 		constructor(r, c, h, w, s) {
@@ -75,35 +103,51 @@
 			this.tile_spacing = s;
 		}
 
+		// Append a tile to the array
 		add_tile(val) {
 			this.tiles.push(val);
 		}
 
-		// return the value of the tile at given position
+		// Return the tile at the passed in row and column
 		get_tile(row, col) {
+			console.log('get tile ' + (row * this.cols + col) + ' at ' + row + 'r ' + col + 'c' + ' = ' + this.tiles[row * this.cols + col]);
 			return this.tiles[row * this.cols + col];
 		}
 
+		// Get the id value of a passed in row and column
 		get_tile_id(row, col) {
 			return row * this.cols + col;
 		}
 
+		get_col(id) {
+			return id % this.cols;
+		}
+
+		get_row(id) {
+			var row = 0;
+
+			for (var i = 0; i <= id; i++) {
+				if (i != 0 && i % this.cols == 0) row++;
+			}
+			
+			return row;
+		}
+
+
+		// Fill the canvas blue to clear it
 		clear() {
 			ctx.fillStyle = "blue";	
 			ctx.fillRect(0, 0, 10000, 10000);
 		}
 
+		// Paint a tile at the passed in id 
 		paint(id, color) {
 			var i = 0;
 			var row = 0;
 			var col = 0;
 
-			while (i <= id) {
-				if (i != 0 && i % this.rows == 0) row++;
-
-				col = i % this.cols;				
-				i++;
-			}
+			row = this.get_row(id);
+			col = this.get_col(id);
 
 			console.log('row: ' + row + ' col: ' + col);
 
@@ -114,56 +158,81 @@
 			ctx.fillRect(x, y, this.tile_width, this.tile_height);
 		}
 
+		// Clear and draw the initial board on the canvas
+		// Return: this
 		draw() {
 			this.tiles = [];
-			this.clear();
+			var id = 0;
 
+			// Clear the previous board, if any
+			this.clear();
+			
+
+			// For every tile in the board
 			for (var i = 0; i < this.rows; i++) {
 				for ( var j = 0; j < this.cols; j++) {
-					// find tile x pos
+					id++;
+
+					// Calculate tile x pos
 					var x = j * this.tile_width;
 					if (j != 0) x += (this.tile_spacing * j);
 
-					// find tile y pos
+					// Calculate tile y pos
 					var y = i * this.tile_height; 
 					if (y != 0) y += (this.tile_spacing * i);
 
-					this.add_tile(Math.floor(Math.random() + .5));
+					// Randomly choose 0 or 1
+					var rand = Math.floor(Math.random() + .5)
 
-					// get tile value
-					var color = this.get_tile(i, j);
+					// Add a new tile with the random value
+					this.add_tile(rand);
 
-					// draw tile
-					if (color == 0) {
-						ctx.fillStyle = "red";
-					} else if (color == 1) {
-						ctx.fillStyle = "green";				
-					}
+					// Set tile color
+					rand == 0 ? ctx.fillStyle = "red": ctx.fillStyle = 'green';
 
+					// Draw tile
 					ctx.fillRect(x, y, this.tile_width, this.tile_height);
+
+					// Draw id
+					ctx.fillStyle = "black";
+					ctx.font = "9px Tahoma"
+					ctx.fillText(id - 1, x, y + this.tile_height / 2);
 				}
 			}
+
+			return this;
 		}
 
+		// Construct a graph structure from the current board array
 		build_graph() {
 			this.graph = [];
 			var row = 0;
 			var col = 0;
+			var edges = [];
 
+			// For every tile in the board
 			for (var i = 0; i < this.tiles.length; i++) {
-				// get current row
-				if (i != 0 && i % this.rows == 0) row++;				
+				// Reset edges
+				edges = [];
 
-				// get current col
-				col = i % this.cols;
+				// Get current row by id
+				row = this.get_row(i);			
+				col = this.get_col(i);
 
-				var edges = [];
+				console.log(i + ' ' + row + 'r ' + col + 'c');				
 
-				// check for edges
-				// check up
+				// The edge array is constructed at first and
+				// is pushed to the tile array in the correct location
+				// at the end.
+
+				// Check up
+				// If current tile is true
 				if (this.get_tile(row, col) == 1) {
+					// Can't check up on the first row
 					if (row != 0) {
+						// If the tile up is true
 						if (board.get_tile(row - 1, col) == 1) {
+							// Add the tile up as an edge
 							edges.push(this.get_tile_id(row - 1, col));
 						}
 					}	
@@ -190,6 +259,8 @@
 					}
 				}
 
+				console.log('graph id: ' + i);
+				console.log(edges);
 				this.graph.push(edges);
 			}
 
@@ -197,10 +268,10 @@
 		}
 	}
 
-	// this array gets populated as the board is created
-	var board = new Board($('#rows').val(), $('#cols').val(), $('#height').val(), $('#width').val(), 1);
+	// Intial page load
 
-	board.draw();
+	// Draw the initial game board
+	var board = new Board($('#rows').val(), $('#cols').val(), $('#height').val(), $('#width').val(), 1).draw();
 
 	</script>
 </html>
